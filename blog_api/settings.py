@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'blog',
     'users',
     'drf_yasg',
-    'psycopg2',
 ]
 
 REST_FRAMEWORK = {
