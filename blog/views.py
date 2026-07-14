@@ -1,37 +1,53 @@
-from django.shortcuts import render
+
 from rest_framework import generics
 from .serializers import PostDetailSerializer, PostSerializer, CommentSerializer
 from .models import Post, Comment
-from django.contrib.auth.models import User
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
-from rest_framework import status
 from .permissions import IsOwnerOrReadOnly
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 # Create your views here.
 
-class PostsApiView(generics.ListCreateAPIView):
-    queryset = Post.objects.all()
-    serializer_class = PostDetailSerializer
-    pagination_class = PageNumberPagination
 
+class PostsApiView(generics.ListCreateAPIView):
+    serializer_class = PostSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        queryset = Post.objects.select_related('author')
+
+        if self.request.user.is_authenticated:
+            return queryset.filter(
+                Q(is_published=True) |
+                Q(author=self.request.user)
+            ).distinct()
+
+        return queryset.filter(is_published=True)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-
 class PostDetailApiView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Post.objects.all()
     serializer_class = PostDetailSerializer
-    lookup_field = 'post_id'
-
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsOwnerOrReadOnly]
 
+    lookup_field = 'id'
+    lookup_url_kwarg = 'post_id'
+
+    def get_queryset(self):
+        queryset = Post.objects.select_related('author')
+
+        if self.request.user.is_authenticated:
+            return queryset.filter(
+                Q(is_published=True) |
+                Q(author=self.request.user)
+            ).distinct()
+
+        return queryset.filter(is_published=True)
 
 class CommentsApiView(generics.ListCreateAPIView):
     queryset = Comment.objects.all()
