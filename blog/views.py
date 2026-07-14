@@ -50,26 +50,19 @@ class PostDetailApiView(generics.RetrieveUpdateDestroyAPIView):
         return queryset.filter(is_published=True)
 
 class CommentsApiView(generics.ListCreateAPIView):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    pagination_class = PageNumberPagination
-
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        post_id = self.kwargs['post_id']
-
         return Comment.objects.filter(
-            post_id=post_id
+            post_id=self.kwargs['post_id']
         ).select_related('author', 'post')
 
     def perform_create(self, serializer):
-        post_id = self.kwargs['post_id']
-
         post = get_object_or_404(
             Post,
-            id=post_id,
+            id=self.kwargs['post_id'],
         )
 
         serializer.save(
@@ -77,18 +70,15 @@ class CommentsApiView(generics.ListCreateAPIView):
             post=post,
         )
 
-
 class CommentDetailApiView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    lookup_field = 'id'
-    lookup_url_kwarg = 'comment_id'
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsOwnerOrReadOnly]
 
+    lookup_field = 'id'
+    lookup_url_kwarg = 'comment_id'
+
     def get_queryset(self):
-        post_id = self.kwargs['post_id']
-        
         return Comment.objects.filter(
-            post_id=post_id
+            post_id=self.kwargs['post_id']
         ).select_related('author', 'post')
